@@ -1,30 +1,29 @@
-# Exercicio Pratico — Telemetria UDP e Cliente HTTP (TCP Puro)
+# Exercicio Pratico: Telemetria UDP e Cliente HTTP (TCP Puro)
 
-Projeto que demonstra a programacao de sockets em C utilizando apenas a API POSIX, sem nenhuma biblioteca HTTP externa. O exercicio e composto por tres programas independentes e uma analise comparativa entre os protocolos UDP e TCP.
-
----
+Projeto que demonstra programacao de sockets em C usando apenas a API POSIX.
+Nenhuma biblioteca HTTP externa foi utilizada. O exercicio tem tres partes:
+um simulador de telemetria UDP (cliente/servidor), um cliente HTTP construido
+sobre sockets TCP puros, e uma analise comparativa entre os protocolos.
 
 ## Estrutura do Projeto
 
-| Arquivo                | Descricao                                           |
-|------------------------|-----------------------------------------------------|
-| `telemetria_server.c`  | Servidor UDP que recebe e exibe pacotes de telemetria |
-| `telemetria_client.c`  | Cliente UDP que gera e envia pacotes de telemetria    |
-| `http_client.c`        | Cliente HTTP minimalista usando sockets TCP puros     |
-| `Makefile`             | Automacao de compilacao e execucao com logs no terminal|
-| `README.md`            | Documentacao e analise comparativa (este arquivo)     |
+| Arquivo                | Descricao                                             |
+|------------------------|-------------------------------------------------------|
+| `telemetria_server.c`  | Servidor UDP que recebe e exibe pacotes de telemetria  |
+| `telemetria_client.c`  | Cliente UDP que gera e envia pacotes de telemetria     |
+| `http_client.c`        | Cliente HTTP minimalista usando sockets TCP puros      |
+| `Makefile`             | Automacao de compilacao e execucao com logs no terminal |
+| `README.md`            | Documentacao e analise comparativa (este arquivo)      |
 
----
+## Como Compilar e Executar
 
-## Como Compilar
-
-### Compilar tudo de uma vez
+Compilar tudo:
 
 ```bash
 make
 ```
 
-### Compilar individualmente
+Compilar individualmente:
 
 ```bash
 make telemetria_server
@@ -32,105 +31,213 @@ make telemetria_client
 make http_client
 ```
 
-### Limpar binarios
+Limpar binarios:
 
 ```bash
 make clean
 ```
 
----
+### Telemetria UDP
 
-## Como Executar
-
-### 1. Sistema de Telemetria UDP
-
-Abra dois terminais.
-
-**Terminal 1 — Servidor:**
+Abra dois terminais. No primeiro, inicie o servidor:
 
 ```bash
 make run_server
 ```
 
-**Terminal 2 — Cliente:**
+No segundo, inicie o cliente:
 
 ```bash
 make run_client
 ```
 
-O servidor exibira os pacotes recebidos em tempo real.
-
-### 2. Cliente HTTP (TCP Puro)
+### Cliente HTTP
 
 ```bash
 make run_http
 ```
 
-Por padrao, faz uma requisicao GET para `api.restful-api.dev/api/objects`. Para especificar outro destino:
+Para outro endpoint:
 
 ```bash
-make run_http HTTP_HOST=httpbin.org HTTP_PATH=/get
-```
-
-Ou diretamente:
-
-```bash
-./http_client api.restful-api.dev /api/objects
 ./http_client httpbin.org /get
 ```
 
----
+## Parte 1: Saida do Simulador de Telemetria UDP
 
-## Formato do Pacote de Telemetria
+O cliente envia 10 pacotes no formato `PKT:<id>|LAT:<lat>|LON:<lon>|VEL:<vel>|TS:<ts>`,
+um por segundo. O servidor recebe, faz o parse e exibe os dados formatados.
 
-```
-PKT:<id>|LAT:<latitude>|LON:<longitude>|VEL:<velocidade>|TS:<timestamp>
-```
-
-Exemplo:
+Saida do **cliente** (`telemetria_client`):
 
 ```
-PKT:1|LAT:-7.2100|LON:-39.3150|VEL:25.3|TS:1700000001
+[INFO] Socket UDP criado com sucesso (fd=5)
+[INFO] Destino: 127.0.0.1:9000
+[INFO] Enviando 10 pacotes de telemetria...
+============================================
+
+[SEND] Pacote  1/10 -> PKT:1|LAT:-7.2100|LON:-39.3150|VEL:34.7|TS:1775487097
+[SEND] Pacote  2/10 -> PKT:2|LAT:-7.2099|LON:-39.3149|VEL:34.6|TS:1775487098
+[SEND] Pacote  3/10 -> PKT:3|LAT:-7.2098|LON:-39.3148|VEL:49.3|TS:1775487099
+[SEND] Pacote  4/10 -> PKT:4|LAT:-7.2097|LON:-39.3147|VEL:20.7|TS:1775487100
+[SEND] Pacote  5/10 -> PKT:5|LAT:-7.2096|LON:-39.3146|VEL:39.2|TS:1775487101
+[SEND] Pacote  6/10 -> PKT:6|LAT:-7.2095|LON:-39.3145|VEL:13.8|TS:1775487102
+[SEND] Pacote  7/10 -> PKT:7|LAT:-7.2094|LON:-39.3144|VEL:12.9|TS:1775487103
+[SEND] Pacote  8/10 -> PKT:8|LAT:-7.2093|LON:-39.3143|VEL:26.3|TS:1775487104
+[SEND] Pacote  9/10 -> PKT:9|LAT:-7.2092|LON:-39.3142|VEL:34.1|TS:1775487105
+[SEND] Pacote 10/10 -> PKT:10|LAT:-7.2091|LON:-39.3141|VEL:26.0|TS:1775487106
+
+============================================
+[INFO] Todos os 10 pacotes enviados.
 ```
 
----
+Saida do **servidor** (`telemetria_server`):
 
-## Analise Comparativa
+```
+[INFO] Socket UDP criado com sucesso (fd=5)
+[INFO] Bind realizado na porta 9000
+[INFO] Servidor de telemetria aguardando pacotes...
+============================================
 
-### Questao 1 — Comportamento de inicializacao: UDP vs TCP
+[RECV] Pacote de 127.0.0.1:59915 -> PKT:1|LAT:-7.2100|LON:-39.3150|VEL:34.7|TS:1775487097
+  Pacote 1 | Lat: -7.2100 | Lon: -39.3150 | Velocidade: 34.7 | Timestamp: 1775487097
 
-**Por que pacotes UDP sao perdidos se o servidor ainda nao iniciou?**
+[RECV] Pacote de 127.0.0.1:59915 -> PKT:2|LAT:-7.2099|LON:-39.3149|VEL:34.6|TS:1775487098
+  Pacote 2 | Lat: -7.2099 | Lon: -39.3149 | Velocidade: 34.6 | Timestamp: 1775487098
 
-O UDP e um protocolo sem conexao (*connectionless*). O cliente simplesmente envia datagramas para um endereco IP e porta — nao existe nenhum mecanismo de handshake ou verificacao de que alguem esta escutando do outro lado. Se o servidor nao estiver com o socket aberto e associado (bind) a porta, o sistema operacional descarta silenciosamente os pacotes que chegam. O cliente nao recebe nenhuma notificacao de falha — o `sendto()` retorna sucesso porque o pacote foi entregue a camada de rede local.
+[RECV] Pacote de 127.0.0.1:59915 -> PKT:3|LAT:-7.2098|LON:-39.3148|VEL:49.3|TS:1775487099
+  Pacote 3 | Lat: -7.2098 | Lon: -39.3148 | Velocidade: 49.3 | Timestamp: 1775487099
 
-**Por que o TCP falha imediatamente sem servidor?**
+  ...
 
-O TCP exige um processo de *three-way handshake* (SYN, SYN-ACK, ACK) antes de qualquer troca de dados. Quando o cliente chama `connect()`, ele envia um pacote SYN para o servidor. Se nao ha nenhum processo escutando na porta de destino, o sistema operacional do servidor responde com um pacote RST (reset), e a funcao `connect()` retorna erro imediatamente. Isso torna a falha explicita e detectavel pelo cliente.
+[RECV] Pacote de 127.0.0.1:59915 -> PKT:10|LAT:-7.2091|LON:-39.3141|VEL:26.0|TS:1775487106
+  Pacote 10 | Lat: -7.2091 | Lon: -39.3141 | Velocidade: 26.0 | Timestamp: 1775487106
+```
 
----
+Todos os 10 pacotes foram enviados pelo cliente e recebidos pelo servidor.
 
-### Questao 2 — Deteccao de falhas
+## Parte 2: Saida do Cliente HTTP (TCP Puro)
 
-**O UDP detecta se o servidor caiu?**
+O cliente resolve o DNS, conecta via TCP na porta 80, monta a requisicao HTTP
+manualmente como texto e envia com `send()`. A resposta e lida em loop com `recv()`.
 
-Nao. Como nao existe conexao entre cliente e servidor no UDP, o cliente continua chamando `sendto()` normalmente, mesmo que o servidor tenha sido encerrado. Os pacotes sao enviados para a rede e descartados sem nenhuma notificacao de volta. Do ponto de vista do cliente, nada mudou — ele nao tem como saber se os dados estao sendo recebidos ou nao, a menos que implemente um mecanismo de confirmacao na camada de aplicacao.
+```bash
+./http_client httpbin.org /get
+```
 
-**O que acontece no TCP quando o servidor cai?**
+Saida:
 
-Se a conexao TCP esta estabelecida e o servidor encerra (de forma limpa ou abrupta), o comportamento do `recv()` no cliente muda:
+```
+============================================
+  Cliente HTTP (TCP puro)
+============================================
 
-- **Encerramento limpo** (servidor chama `close()`): o `recv()` retorna `0`, indicando que a conexao foi fechada pelo outro lado.
-- **Encerramento abrupto** (processo morto, crash): o `recv()` pode retornar `-1` com `errno` definido para `ECONNRESET`, ou o proximo `send()` pode gerar um `SIGPIPE` ou retornar erro com `EPIPE`.
+[INFO] Resolvendo hostname: httpbin.org
+[INFO] Hostname resolvido: httpbin.org -> 3.213.232.221
+[INFO] Socket TCP criado (fd=7)
+[INFO] Conectando a httpbin.org:80...
+[INFO] Conectado a httpbin.org:80
 
-Em ambos os casos, o TCP permite que o cliente detecte a falha e reaja.
+[INFO] Enviando requisicao GET /get
+--------------------------------------------
+GET /get HTTP/1.1
+Host: httpbin.org
+Connection: close
 
----
+--------------------------------------------
 
-### Questao 3 — O que torna uma requisicao HTTP?
+[INFO] Requisicao enviada (59 bytes)
 
-O HTTP nao e uma funcionalidade especial dos sockets — e simplesmente um protocolo de texto que roda sobre TCP. As mesmas funcoes de socket sao usadas (`socket`, `connect`, `send`, `recv`), sejam para HTTP ou qualquer outra comunicacao TCP.
+[INFO] Aguardando resposta...
+============================================
+  RESPOSTA DO SERVIDOR
+============================================
 
-O que torna uma comunicacao "HTTP" e exclusivamente a **formatacao do texto** enviado e recebido. Uma requisicao HTTP valida segue um formato rigido:
+HTTP/1.1 200 OK
+Date: Mon, 06 Apr 2026 14:51:56 GMT
+Content-Type: application/json
+Content-Length: 197
+Connection: close
+Server: gunicorn/19.9.0
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+{
+  "args": {},
+  "headers": {
+    "Host": "httpbin.org",
+    "X-Amzn-Trace-Id": "Root=1-69d3c88c-3935e2da43f6357e16743390"
+  },
+  "origin": "181.77.96.66",
+  "url": "http://httpbin.org/get"
+}
+
+============================================
+[INFO] Conexao encerrada. Total: 422 bytes recebidos.
+```
+
+O corpo JSON retornado e identico ao que seria obtido com `curl http://httpbin.org/get`.
+
+## Parte 3: Analise Comparativa
+
+### Teste A: Servidor UDP iniciado apos o cliente
+
+Ao executar o `telemetria_client` **antes** do `telemetria_server`, o cliente envia
+todos os 10 pacotes normalmente (o `sendto()` retorna sucesso em cada um). Porem,
+quando o servidor e iniciado depois, ele nao recebe nenhum desses pacotes. Eles foram
+descartados pelo sistema operacional porque nao havia nenhum socket associado a porta 9000
+no momento do envio.
+
+Agora, ao tentar o mesmo com o cliente HTTP (TCP) apontando para `localhost` sem
+nenhum servidor na porta 80:
+
+```
+[INFO] Resolvendo hostname: localhost
+[INFO] Hostname resolvido: localhost -> 127.0.0.1
+[INFO] Socket TCP criado (fd=5)
+[INFO] Conectando a localhost:80...
+[ERRO] Falha ao conectar: Connection refused
+```
+
+O `connect()` falha imediatamente com "Connection refused".
+
+**Por que essa diferenca?**
+
+O UDP nao tem conexao. O `sendto()` entrega o pacote para a camada de rede local e
+retorna. Se ninguem esta escutando na porta, o pacote e descartado silenciosamente.
+O cliente nao tem como saber.
+
+O TCP exige um *three-way handshake* (SYN, SYN-ACK, ACK). Quando o cliente envia o
+SYN e ninguem esta escutando, o SO responde com RST (reset), e o `connect()` retorna
+erro na hora. A falha e explicita.
+
+### Teste B: Queda durante a comunicacao
+
+Se matarmos o `telemetria_server` com `kill` ou Ctrl+C enquanto o `telemetria_client`
+ainda esta enviando pacotes, o cliente **nao percebe nada**. Ele continua chamando
+`sendto()` e cada chamada retorna sucesso. Os pacotes seguintes sao simplesmente
+descartados sem notificacao.
+
+Isso acontece porque no UDP nao existe conceito de "conexao estabelecida". O cliente
+apenas dispara datagramas para um endereco. Nao ha confirmacao de recebimento (ACK).
+
+No TCP a situacao e diferente. Se o servidor cai durante uma transferencia:
+
+- Se o servidor encerrou de forma limpa (chamou `close()`), o `recv()` no cliente
+  retorna `0`, sinalizando fim da conexao.
+- Se o servidor caiu abruptamente (crash, kill -9), o `recv()` retorna `-1` com
+  `errno = ECONNRESET`, ou o proximo `send()` recebe `EPIPE`/`SIGPIPE`.
+
+Em ambos os casos o TCP notifica o cliente. O UDP nao.
+
+### Questao 3: O que faz a comunicacao ser "HTTP"?
+
+No `http_client.c` usamos exatamente as mesmas funcoes de socket que usariamos para
+qualquer comunicacao TCP: `socket()`, `connect()`, `send()`, `recv()`. Nao ha nada
+de especial nas chamadas de sistema.
+
+O que torna a comunicacao "HTTP" e exclusivamente a **formatacao do texto** que
+enviamos pelo socket. A requisicao precisa seguir um formato especifico:
 
 ```
 GET /caminho HTTP/1.1\r\n
@@ -139,60 +246,54 @@ Connection: close\r\n
 \r\n
 ```
 
-Se o formato estiver errado — por exemplo, faltando o `\r\n` duplo no final, ou com o metodo escrito incorretamente — o servidor web pode ignorar a requisicao ou retornar um erro. O socket em si nao sabe e nao se importa com o conteudo; ele apenas transporta bytes.
+Se mandarmos qualquer outra string pelo mesmo socket (por exemplo, "ola mundo"), a
+conexao TCP funciona normalmente, mas o servidor web nao vai entender e vai ignorar
+ou retornar erro. HTTP e so texto formatado sobre TCP.
 
----
+### Questao 4: Por que APIs REST usam TCP e nao UDP?
 
-### Questao 4 — Por que APIs REST usam TCP?
+Uma API REST precisa que a resposta JSON chegue **completa, na ordem certa e sem
+partes faltando**. O TCP garante isso com seus mecanismos de:
 
-APIs REST dependem de TCP por tres razoes fundamentais:
+- Retransmissao automatica de segmentos perdidos
+- Entrega ordenada (os dados chegam na mesma sequencia em que foram enviados)
+- Controle de fluxo (o receptor nao e sobrecarregado)
 
-1. **Confiabilidade**: O TCP garante que todos os bytes enviados serao recebidos na ordem correta, sem perda e sem duplicacao. Uma resposta JSON incompleta ou corrompida seria inutil para o cliente.
+Se a resposta JSON viesse por UDP, pacotes poderiam se perder ou chegar fora de
+ordem. O cliente receberia um JSON incompleto ou embaralhado, que nao faria sentido
+nenhum ao tentar fazer o parse. Seria necessario implementar toda essa logica de
+confiabilidade na camada de aplicacao, o que equivale a reinventar o TCP.
 
-2. **Ordenacao**: O TCP mantem a ordem dos segmentos. No UDP, pacotes podem chegar fora de ordem, o que tornaria impossivel reconstruir uma resposta HTTP sem logica adicional na camada de aplicacao.
+### Questao 5: A telemetria do drone seria prejudicada com TCP?
 
-3. **Completude**: O TCP tem mecanismos de controle de fluxo e retransmissao. Se um segmento se perde na rede, ele e reenviado automaticamente. Isso garante que o corpo inteiro de uma resposta JSON — que pode ter milhares de bytes — chegue completo ao cliente.
+Funcionaria, mas com tradeoffs importantes.
 
-Para o cenario tipico de APIs REST (requisicao-resposta, dados estruturados, integridade critica), a sobrecarga do TCP e um preco pequeno a pagar pela garantia de entrega.
+Com TCP, teriamos garantia de entrega e deteccao de falhas, o que e bom. Porem, para
+telemetria em tempo real de um drone, o dado mais recente e quase sempre mais
+relevante que um dado de 5 segundos atras. Se um pacote TCP se perde na rede, o
+protocolo trava a entrega dos pacotes seguintes ate retransmitir o perdido
+(*head-of-line blocking*). Enquanto isso, o drone ja se moveu e a posicao antiga
+perdeu relevancia.
 
----
+Alem disso, o handshake inicial adiciona latencia, e manter conexoes TCP persistentes
+para milhares de sensores consome mais recursos do servidor.
 
-### Questao 5 — Telemetria funcionaria com TCP?
+Para a telemetria deste exercicio (GPS de drone, dados que perdem relevancia rapido),
+o UDP faz mais sentido: se um pacote se perdeu, o proximo ja traz dados mais recentes.
 
-Sim, funcionaria, mas com *tradeoffs* importantes:
+Se a telemetria fosse de dados criticos (ex: registros medicos, dados financeiros),
+ai sim o TCP seria a escolha certa, porque perder um dado seria inaceitavel.
 
-**Vantagens do TCP para telemetria:**
-- Garantia de entrega de todos os pacotes
-- Deteccao de falhas na conexao
-- Ordenacao dos dados
+### Questao 6: Regra geral para decidir entre TCP e UDP
 
-**Desvantagens do TCP para telemetria:**
-- **Latencia**: O handshake inicial (SYN/SYN-ACK/ACK) adiciona atraso antes do primeiro dado ser enviado. Retransmissoes de pacotes perdidos tambem aumentam a latencia.
-- **Head-of-line blocking**: Se um pacote e perdido, o TCP bloqueia a entrega dos pacotes subsequentes ate que o pacote perdido seja retransmitido. Em telemetria em tempo real, o dado mais recente e quase sempre mais importante que um dado antigo.
-- **Overhead de conexao**: Manter uma conexao TCP persistente consome recursos do servidor (memoria, file descriptors). Com milhares de sensores, isso se torna significativo.
+| Criterio                     | TCP                             | UDP                             |
+|------------------------------|----------------------------------|---------------------------------|
+| Confiabilidade necessaria?   | Sim, retransmissao automatica   | Nao, pacotes podem se perder    |
+| Ordem dos dados importa?     | Sim, entrega ordenada           | Nao, pode chegar fora de ordem  |
+| Latencia e critica?          | Tolera atraso                   | Precisa de minima latencia      |
+| Tipo de comunicacao          | Requisicao-resposta, streams    | Fire-and-forget, broadcast      |
+| Exemplos                     | HTTP, APIs REST, email, SSH     | DNS, VoIP, streaming, jogos     |
 
-**Quando usar cada um para telemetria:**
-- **UDP**: Quando a perda ocasional de um pacote e aceitavel e a latencia baixa e prioridade (GPS de veiculos, sensores IoT, jogos).
-- **TCP**: Quando a perda de dados e inaceitavel (telemetria medica, registros financeiros, dados de auditoria).
-
----
-
-### Questao 6 — Regra geral: quando usar TCP vs UDP
-
-| Criterio                          | TCP                          | UDP                          |
-|-----------------------------------|------------------------------|------------------------------|
-| Confiabilidade necessaria?        | Sim — retransmissao automatica | Nao — pacotes podem se perder |
-| Ordem dos dados importa?          | Sim — entrega ordenada       | Nao — pode chegar fora de ordem |
-| Latencia e critica?               | Tolera atraso                | Precisa de minima latencia   |
-| Tipo de comunicacao               | Requisicao-resposta, streams | Fire-and-forget, broadcast   |
-| Exemplos                          | HTTP, APIs REST, email, SSH  | DNS, VoIP, streaming, jogos  |
-
-**Framework de decisao:**
-
-1. **Os dados precisam chegar completos e em ordem?** → Use TCP.
-2. **Perder um pacote ocasionalmente e aceitavel?** → Use UDP.
-3. **Latencia importa mais que confiabilidade?** → Use UDP.
-4. **Precisa de broadcast/multicast?** → Use UDP (TCP e ponto-a-ponto).
-5. **E um protocolo de requisicao-resposta com dados estruturados?** → Use TCP.
-
-Na duvida, comece com TCP — ele e mais seguro e previsivel. Migre para UDP apenas quando houver uma necessidade clara de baixa latencia ou quando a perda de dados for aceitavel no contexto da aplicacao.
+Na pratica: se os dados precisam chegar completos e na ordem, use TCP. Se perder um
+pacote de vez em quando e aceitavel e latencia importa, use UDP. Na duvida, comece
+com TCP (mais seguro) e migre para UDP se a latencia virar um problema.

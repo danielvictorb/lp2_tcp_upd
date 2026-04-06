@@ -69,8 +69,8 @@ run_client: telemetria_client
 	@echo ""
 	./telemetria_client
 
-HTTP_HOST ?= api.restful-api.dev
-HTTP_PATH ?= /api/objects
+HTTP_HOST ?= httpbin.org
+HTTP_PATH ?= /get
 
 run_http: http_client
 	@echo ""
