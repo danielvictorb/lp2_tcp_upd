@@ -1,5 +1,8 @@
 # Exercicio Pratico: Telemetria UDP e Cliente HTTP (TCP Puro)
 
+## Aluno: Daniel Victor Carneiro Brandão da Costa
+## Matrícula: 20230089678
+
 Projeto que demonstra programacao de sockets em C usando apenas a API POSIX.
 Nenhuma biblioteca HTTP externa foi utilizada. O exercicio tem tres partes:
 um simulador de telemetria UDP (cliente/servidor), um cliente HTTP construido
